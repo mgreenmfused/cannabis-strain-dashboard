@@ -203,3 +203,215 @@ const Dashboard = () => {
   };
 
   if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading strain data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Data</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Cannabis Strain Performance Dashboard
+          </h1>
+          <p className="text-gray-600">
+            Track strain success, baseline performance, and monthly trends across markets
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Market</label>
+              <select
+                value={selectedMarket}
+                onChange={(e) => setSelectedMarket(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Total">All Markets</option>
+                {markets.map(market => (
+                  <option key={market} value={market}>{market}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Product Line</label>
+              <select
+                value={selectedProductLine}
+                onChange={(e) => setSelectedProductLine(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="All">All Lines</option>
+                {productLines.map(line => (
+                  <option key={line} value={line}>{line} Cartridge</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pack Size</label>
+              <select
+                value={selectedPackSize}
+                onChange={(e) => setSelectedPackSize(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="All">All Sizes</option>
+                {packSizes.map(size => (
+                  <option key={size} value={size}>
+                    {size === 1 ? 'Single' : `${size}-Pack`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Strain</label>
+              <select
+                value={selectedStrain}
+                onChange={(e) => setSelectedStrain(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="All">All Strains</option>
+                {strains.map(strain => (
+                  <option key={strain} value={strain}>{strain}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Metric</label>
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="revenue">Revenue</option>
+                <option value="units">Units Sold</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Chart Type</label>
+              <select
+                value={chartType}
+                onChange={(e) => setChartType(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="line">Line Chart</option>
+                <option value="bar">Bar Chart</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSelectedProductLine('All');
+                  setSelectedPackSize('All');
+                  setSelectedStrain('All');
+                  setSelectedMarket('Total');
+                  setMarketView('combined');
+                }}
+                className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {viewMode === 'revenue' ? 'Revenue' : 'Units'} Trends by Month
+            {selectedMarket !== 'Total' && (
+              <span className="text-base font-normal text-gray-600 ml-2">- {selectedMarket} Market</span>
+            )}
+          </h2>
+          
+          <ResponsiveContainer width="100%" height={400}>
+            {chartType === 'line' ? (
+              <LineChart data={processedData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickFormatter={(value) => `Month ${value}`} />
+                <YAxis tickFormatter={viewMode === 'revenue' ? formatCurrency : formatNumber} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    viewMode === 'revenue' ? formatCurrency(value) : formatNumber(value),
+                    formatChartLabel(name)
+                  ]}
+                  labelFormatter={(value) => `Month ${value}`}
+                />
+                <Legend formatter={(value) => formatChartLabel(value)} />
+                {strainCombinations.map((strain, index) => (
+                  <Line
+                    key={strain}
+                    type="monotone"
+                    dataKey={strain}
+                    stroke={colors[index % colors.length]}
+                    strokeWidth={2}
+                    dot={{ fill: colors[index % colors.length], strokeWidth: 2, r: 4 }}
+                    connectNulls={false}
+                  />
+                ))}
+              </LineChart>
+            ) : (
+              <BarChart data={processedData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickFormatter={(value) => `Month ${value}`} />
+                <YAxis tickFormatter={viewMode === 'revenue' ? formatCurrency : formatNumber} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    viewMode === 'revenue' ? formatCurrency(value) : formatNumber(value),
+                    formatChartLabel(name)
+                  ]}
+                  labelFormatter={(value) => `Month ${value}`}
+                />
+                <Legend formatter={(value) => formatChartLabel(value)} />
+                {strainCombinations.map((strain, index) => (
+                  <Bar
+                    key={strain}
+                    dataKey={strain}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-2">
+            🎉 Cannabis Strain Dashboard Ready!
+          </h3>
+          <div className="text-blue-800 space-y-2">
+            <p><strong>✓ Multi-Market Analysis:</strong> Filter by AZ, CA, NV, or view all markets</p>
+            <p><strong>✓ Product Line Tracking:</strong> Fire, Twisted, Loud, Fattys cartridges</p>
+            <p><strong>✓ Strain Performance:</strong> Track individual strain success and trends</p>
+            <p><strong>✓ Pack Size Analysis:</strong> Compare single units vs multi-packs</p>
+            <p><strong>Ready for your real data!</strong> Use the filters above to explore your strain performance.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
